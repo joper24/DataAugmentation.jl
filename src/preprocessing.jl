@@ -56,14 +56,27 @@ apply(tfms, image)
 ```
 
 """
+# MARK - Normalize Struct Explained
+#* Creates the trait type "Normalize" that extends the abstract style "Transform"
+### Transform
+#* Abstract type defined in base.jl
+### Normalize{N} 
+#* Normalize - name of the struct ... It is of the abstract type Transform
+    #* So Normalize is a subtype of Transform
+    #* N - The dimensionality of the struct 
+### means & stds
+#* static arrays of size N
+    #* "Note that here "statically sized" means that the size can be determined from the type, and "static" does not necessarily imply immutable." - https://github.com/JuliaArrays/StaticArrays.jl
 struct Normalize{N} <: Transform
     means::SVector{N}
     stds::SVector{N}
 end
 
+### Outer contructor for the Normalize Struct
+#* N = length(means) - The dimensionality of the Normalize Struct 
 function Normalize(means, stds)
     length(means) == length(stds) || error("`means` and `stds` must have same length")
-    N = length(means)
+    N = length(means) 
     return Normalize{N}(SVector{N}(means), SVector{N}(stds))
 end
 
@@ -81,12 +94,12 @@ function apply!(buf, tfm::Normalize, item::ArrayItem; randstate = nothing)
     return buf
 end
 
-
 function normalize!(a, means, stds)
     a .-= means
     a ./= stds
     return a
 end
+
 
 normalize(a, means, stds) = normalize!(copy(a), means, stds)
 
@@ -94,7 +107,11 @@ function Normalize(array)
     slices = ones(Bool, size(array))
     means = mean(array[slices])
     stds = std(array[slices])
-    array[slices] = (array[slices] .- means) / stds
+    
+    ### mormalize! function does below code so just call that instead
+    # array[slices] = (array[slices] .- means) / stds
+    array = normalize!(array, means, stds)
+    
     return array
 end
 
